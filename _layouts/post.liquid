@@ -64,7 +64,7 @@ layout: default
       <hr>
     {% endif %}
     <div id="markdown-content">
-      {{ content }}
+      {{ content | inject_anchors }}
     </div>
   </article>
 
