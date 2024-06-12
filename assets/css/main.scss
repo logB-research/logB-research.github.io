@@ -21,8 +21,3 @@ $max-content-width: {{ site.max_width }};
   "tabler-icons/tabler-icons-filled.scss",
   "tabler-icons/tabler-icons-outline.scss"
 ;
-
-[data-emoji]:before {
-  content: attr(data-emoji);
-  margin-right: 0.5em;
-}
