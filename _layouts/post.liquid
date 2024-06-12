@@ -88,3 +88,17 @@ layout: default
     {% include giscus.liquid %}
   {% endif %}
 </div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      let targetId = anchor.getAttribute('href').substring(1);
+      let targetElement = document.getElementById(targetId);
+
+      if (targetElement) {
+        targetElement.id = targetElement.id.replace(/[^a-zA-Z0-9\-_]/g, "");
+        anchor.setAttribute('href', '#' + targetElement.id);
+      }
+    });
+  });
+</script>
