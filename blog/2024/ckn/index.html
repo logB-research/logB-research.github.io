@@ -107,7 +107,7 @@
 torch.nn.functional.conv2d : 0.1617 seconds
 cupyx.scipy.signal.correlate2d : 0.0006 seconds</code></pre> <p>Note that there also exist a <a href="https://jax.readthedocs.io/en/latest/_autosummary/jax.scipy.signal.correlate2d.html" rel="external nofollow noopener" target="_blank">LAX-backend implementation</a> of <code class="language-plaintext highlighter-rouge">scipy.signal.correlate2d</code> in <code class="language-plaintext highlighter-rouge">JAX</code>.</p> <h6 id="use-a-low-level-language">Use a Low-Level Language</h6> <p>You can also implement the function in a low-level language such as C or C++ for better performance, and use a high-level language like Python to call this implementation. In practice, this is what is done in PyTorch. In our work, we re-implemented the <code class="language-plaintext highlighter-rouge">scipy.signal.correlate2d</code> using Nvidia CUDA. We provide below the corresponding implementation.</p> <details><summary>CUDA Implementation</summary> <figure class="highlight"><pre><code class="language-c_cpp" data-lang="c_cpp">/*!
 Cuda implementation of scipy.signal.correlate2d
-See &lt;https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.correlate2d.html&gt; for
+See &lt;https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.correlate2d&gt; for
 the origial implementation.
 */
 
