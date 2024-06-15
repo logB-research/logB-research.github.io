@@ -105,7 +105,61 @@
 <span class="n">cupyx_time</span> <span class="o">=</span> <span class="n">timeit</span><span class="p">.</span><span class="nf">default_timer</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span>
 <span class="nf">print</span><span class="p">(</span><span class="sh">"</span><span class="s">Execution time with cupyx.scipy.signal.correlate2d :</span><span class="sh">"</span><span class="p">,</span> <span class="n">cupyx_time</span><span class="p">)</span></code></pre></figure> </details> <p>Running the code above produces the following output.</p> <pre><code class="language-python">scipy.signal.correlate2d : 8.6376 seconds
 torch.nn.functional.conv2d : 0.1617 seconds
-cupyx.scipy.signal.correlate2d : 0.0006 seconds</code></pre> <p>Note that there also exist a <a href="https://jax.readthedocs.io/en/latest/_autosummary/jax.scipy.signal.correlate2d.html" rel="external nofollow noopener" target="_blank">LAX-backend implementation</a> of <code class="language-plaintext highlighter-rouge">scipy.signal.correlate2d</code> in <code class="language-plaintext highlighter-rouge">JAX</code>.</p> <h6 id="use-a-low-level-language">Use a Low-Level Language</h6> <p>You can also implement the function in a low-level language such as C or C++ for better performance, and use a high-level language like Python to call this implementation. In practice, this is what is done in PyTorch. In our work, we re-implemented the <code class="language-plaintext highlighter-rouge">scipy.signal.correlate2d</code> using Nvidia CUDA. We provide below the corresponding implementation.</p> <div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cm">/*!
+cupyx.scipy.signal.correlate2d : 0.0006 seconds</code></pre> <p>Note that there also exist a <a href="https://jax.readthedocs.io/en/latest/_autosummary/jax.scipy.signal.correlate2d.html" rel="external nofollow noopener" target="_blank">LAX-backend implementation</a> of <code class="language-plaintext highlighter-rouge">scipy.signal.correlate2d</code> in <code class="language-plaintext highlighter-rouge">JAX</code>.</p> <h6 id="use-a-low-level-language">Use a Low-Level Language</h6> <p>You can also implement the function in a low-level language such as C or C++ for better performance, and use a high-level language like Python to call this implementation. In practice, this is what is done in PyTorch. In our work, we re-implemented the <code class="language-plaintext highlighter-rouge">scipy.signal.correlate2d</code> using Nvidia CUDA. We provide below the corresponding implementation.</p> <details><summary>CUDA Implementation</summary> <div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">extern</span> <span class="s">"C"</span> <span class="p">{</span>
+    <span class="n">__global__</span> <span class="kt">void</span> <span class="n">correlate2d_gpu_kernel</span><span class="p">(</span>
+        <span class="kt">float</span><span class="o">*</span> <span class="n">result</span><span class="p">,</span>
+        <span class="kt">float</span><span class="o">*</span> <span class="n">image</span><span class="p">,</span>
+        <span class="kt">float</span><span class="o">*</span> <span class="n">kernel</span><span class="p">,</span>
+        <span class="kt">int</span> <span class="n">image_width</span><span class="p">,</span>
+        <span class="kt">int</span> <span class="n">image_height</span><span class="p">,</span>
+        <span class="kt">int</span> <span class="n">kernel_width</span><span class="p">,</span>
+        <span class="kt">int</span> <span class="n">kernel_height</span><span class="p">)</span> <span class="p">{</span>
+        <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="n">blockIdx</span><span class="p">.</span><span class="n">x</span> <span class="o">*</span> <span class="n">blockDim</span><span class="p">.</span><span class="n">x</span> <span class="o">+</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">;</span>
+        <span class="kt">int</span> <span class="n">j</span> <span class="o">=</span> <span class="n">blockIdx</span><span class="p">.</span><span class="n">y</span> <span class="o">*</span> <span class="n">blockDim</span><span class="p">.</span><span class="n">y</span> <span class="o">+</span> <span class="n">threadIdx</span><span class="p">.</span><span class="n">y</span><span class="p">;</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">i</span> <span class="o">&lt;</span> <span class="n">image_width</span> <span class="o">-</span> <span class="n">kernel_width</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">&amp;&amp;</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">image_height</span> <span class="o">-</span> <span class="n">kernel_height</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+            <span class="kt">float</span> <span class="n">sum</span> <span class="o">=</span> <span class="mf">0.0</span><span class="n">f</span><span class="p">;</span>
+            <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">ki</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">ki</span> <span class="o">&lt;</span> <span class="n">kernel_width</span><span class="p">;</span> <span class="n">ki</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+                <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">kj</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">kj</span> <span class="o">&lt;</span> <span class="n">kernel_height</span><span class="p">;</span> <span class="n">kj</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+                    <span class="n">sum</span> <span class="o">+=</span> <span class="n">kernel</span><span class="p">[</span><span class="n">ki</span> <span class="o">*</span> <span class="n">kernel_width</span> <span class="o">+</span> <span class="n">kj</span><span class="p">]</span> <span class="o">*</span> <span class="n">image</span><span class="p">[(</span><span class="n">i</span> <span class="o">+</span> <span class="n">ki</span><span class="p">)</span> <span class="o">*</span> <span class="n">image_width</span> <span class="o">+</span> <span class="p">(</span><span class="n">j</span> <span class="o">+</span> <span class="n">kj</span><span class="p">)];</span>
+                <span class="p">}</span>
+            <span class="p">}</span>
+            <span class="n">result</span><span class="p">[</span><span class="n">i</span> <span class="o">*</span> <span class="p">(</span><span class="n">image_height</span> <span class="o">-</span> <span class="n">kernel_height</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">sum</span><span class="p">;</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="kt">void</span> <span class="nf">correlate2d_gpu</span><span class="p">(</span>
+        <span class="kt">float</span><span class="o">*</span> <span class="n">result</span><span class="p">,</span>
+        <span class="kt">float</span><span class="o">*</span> <span class="n">image</span><span class="p">,</span>
+        <span class="kt">float</span><span class="o">*</span> <span class="n">kernel</span><span class="p">,</span>
+        <span class="kt">int</span> <span class="n">image_width</span><span class="p">,</span>
+        <span class="kt">int</span> <span class="n">image_height</span><span class="p">,</span>
+        <span class="kt">int</span> <span class="n">kernel_width</span><span class="p">,</span>
+        <span class="kt">int</span> <span class="n">kernel_height</span><span class="p">)</span> <span class="p">{</span>
+        <span class="kt">float</span><span class="o">*</span> <span class="n">d_result</span><span class="p">;</span>
+        <span class="kt">float</span><span class="o">*</span> <span class="n">d_image</span><span class="p">;</span>
+        <span class="kt">float</span><span class="o">*</span> <span class="n">d_kernel</span><span class="p">;</span>
+
+        <span class="n">cudaMalloc</span><span class="p">((</span><span class="kt">void</span><span class="o">**</span><span class="p">)</span><span class="o">&amp;</span><span class="n">d_result</span><span class="p">,</span> <span class="p">(</span><span class="n">image_width</span> <span class="o">-</span> <span class="n">kernel_width</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">image_height</span> <span class="o">-</span> <span class="n">kernel_height</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">float</span><span class="p">));</span>
+        <span class="n">cudaMalloc</span><span class="p">((</span><span class="kt">void</span><span class="o">**</span><span class="p">)</span><span class="o">&amp;</span><span class="n">d_image</span><span class="p">,</span> <span class="n">image_width</span> <span class="o">*</span> <span class="n">image_height</span> <span class="o">*</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">float</span><span class="p">));</span>
+        <span class="n">cudaMalloc</span><span class="p">((</span><span class="kt">void</span><span class="o">**</span><span class="p">)</span><span class="o">&amp;</span><span class="n">d_kernel</span><span class="p">,</span> <span class="n">kernel_width</span> <span class="o">*</span> <span class="n">kernel_height</span> <span class="o">*</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">float</span><span class="p">));</span>
+
+        <span class="n">cudaMemcpy</span><span class="p">(</span><span class="n">d_image</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">image_width</span> <span class="o">*</span> <span class="n">image_height</span> <span class="o">*</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">float</span><span class="p">),</span> <span class="n">cudaMemcpyHostToDevice</span><span class="p">);</span>
+        <span class="n">cudaMemcpy</span><span class="p">(</span><span class="n">d_kernel</span><span class="p">,</span> <span class="n">kernel</span><span class="p">,</span> <span class="n">kernel_width</span> <span class="o">*</span> <span class="n">kernel_height</span> <span class="o">*</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">float</span><span class="p">),</span> <span class="n">cudaMemcpyHostToDevice</span><span class="p">);</span>
+
+        <span class="n">dim3</span> <span class="n">blockSize</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">);</span>
+        <span class="n">dim3</span> <span class="n">gridSize</span><span class="p">((</span><span class="n">image_width</span> <span class="o">-</span> <span class="n">kernel_width</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">blockSize</span><span class="p">.</span><span class="n">x</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">blockSize</span><span class="p">.</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="n">image_height</span> <span class="o">-</span> <span class="n">kernel_height</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">blockSize</span><span class="p">.</span><span class="n">y</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">blockSize</span><span class="p">.</span><span class="n">y</span><span class="p">);</span>
+
+        <span class="n">correlate2d_gpu_kernel</span><span class="o">&lt;&lt;&lt;</span><span class="n">gridSize</span><span class="p">,</span> <span class="n">blockSize</span><span class="o">&gt;&gt;&gt;</span><span class="p">(</span><span class="n">d_result</span><span class="p">,</span> <span class="n">d_image</span><span class="p">,</span> <span class="n">d_kernel</span><span class="p">,</span> <span class="n">image_width</span><span class="p">,</span> <span class="n">image_height</span><span class="p">,</span> <span class="n">kernel_width</span><span class="p">,</span> <span class="n">kernel_height</span><span class="p">);</span>
+
+        <span class="n">cudaMemcpy</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">d_result</span><span class="p">,</span> <span class="p">(</span><span class="n">image_width</span> <span class="o">-</span> <span class="n">kernel_width</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">image_height</span> <span class="o">-</span> <span class="n">kernel_height</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">float</span><span class="p">),</span> <span class="n">cudaMemcpyDeviceToHost</span><span class="p">);</span>
+
+        <span class="n">cudaFree</span><span class="p">(</span><span class="n">d_result</span><span class="p">);</span>
+        <span class="n">cudaFree</span><span class="p">(</span><span class="n">d_image</span><span class="p">);</span>
+        <span class="n">cudaFree</span><span class="p">(</span><span class="n">d_kernel</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div> </details> <details><summary>CUDA Implementation</summary> <figure class="highlight"><pre><code class="language-cpp" data-lang="cpp"><span class="cm">/*!
 Cuda implementation of scipy.signal.correlate2d
 See &lt;https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.correlate2d&gt; for
 the origial implementation.
@@ -183,83 +237,4 @@ the origial implementation.
         <span class="n">cudaFree</span><span class="p">(</span><span class="n">d_image</span><span class="p">);</span>
         <span class="n">cudaFree</span><span class="p">(</span><span class="n">d_kernel</span><span class="p">);</span>
     <span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div></div> <details><summary>CUDA Implementation</summary> <figure class="highlight"><pre><code class="language-c_cpp" data-lang="c_cpp">/*!
-Cuda implementation of scipy.signal.correlate2d
-See &lt;https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.correlate2d&gt; for
-the origial implementation.
-*/
-
-
-extern "C" {
-    __global__ void correlate2d_gpu_kernel(
-        float* result,
-        float* image,
-        float* kernel,
-        int image_width,
-        int image_height,
-        int kernel_width,
-        int kernel_height) {
-        /*!
-        results: Contains the discrete linear cross-correlation of image with kernel.
-        image: First input.
-        kernel: Second input.
-        image_width: Width of first input.
-        image_height: Height of first input.
-        kernel_width: Width of second input.
-        kernel_height: Height of second input.
-        */
-        int i = blockIdx.x * blockDim.x + threadIdx.x;
-        int j = blockIdx.y * blockDim.y + threadIdx.y;
-
-        if (i &lt; image_width - kernel_width + 1 &amp;&amp; j &lt; image_height - kernel_height + 1) {
-            float sum = 0.0f;
-            for (int ki = 0; ki &lt; kernel_width; ki++) {
-                for (int kj = 0; kj &lt; kernel_height; kj++) {
-                    sum += kernel[ki * kernel_width + kj] * image[(i + ki) * image_width + (j + kj)];
-                }
-            }
-            result[i * (image_height - kernel_height + 1) + j] = sum;
-        }
-    }
-
-    void correlate2d_gpu(
-        float* result,
-        float* image,
-        float* kernel,
-        int image_width,
-        int image_height,
-        int kernel_width,
-        int kernel_height) {
-        /*!
-        results: Contains the discrete linear cross-correlation of image with kernel.
-        image: First input.
-        kernel: Second input.
-        image_width: Width of first input.
-        image_height: Height of first input.
-        kernel_width: Width of second input.
-        kernel_height: Height of second input.
-        */
-        float* d_result;
-        float* d_image;
-        float* d_kernel;
-
-        cudaMalloc((void**)&amp;d_result, (image_width - kernel_width + 1) * (image_height - kernel_height + 1) * sizeof(float));
-        cudaMalloc((void**)&amp;d_image, image_width * image_height * sizeof(float));
-        cudaMalloc((void**)&amp;d_kernel, kernel_width * kernel_height * sizeof(float));
-
-        cudaMemcpy(d_image, image, image_width * image_height * sizeof(float), cudaMemcpyHostToDevice);
-        cudaMemcpy(d_kernel, kernel, kernel_width * kernel_height * sizeof(float), cudaMemcpyHostToDevice);
-
-        dim3 blockSize(16, 16);
-        dim3 gridSize((image_width - kernel_width + 1 + blockSize.x - 1) / blockSize.x, (image_height - kernel_height + 1 + blockSize.y - 1) / blockSize.y);
-
-        correlate2d_gpu_kernel&lt;&lt;&lt;gridSize, blockSize&gt;&gt;&gt;(d_result, d_image, d_kernel, image_width, image_height, kernel_width, kernel_height);
-
-        cudaMemcpy(result, d_result, (image_width - kernel_width + 1) * (image_height - kernel_height + 1) * sizeof(float), cudaMemcpyDeviceToHost);
-
-        cudaFree(d_result);
-        cudaFree(d_image);
-        cudaFree(d_kernel);
-    }
-}</code></pre></figure> </details> <h2 id="acknowledgments-"> <a id="acknowledgments"></a>Acknowledgments 🙏🏾</h2> <p>For any further questions, please feel free to leave a comment or contact the authors by mail!</p> </d-article> <d-appendix> <d-footnote-list></d-footnote-list> <d-citation-list></d-citation-list> </d-appendix> <d-bibliography src="/assets/bibliography/2024-04-22-ckn.bib"></d-bibliography> <div id="giscus_thread" style="max-width: 800px; margin: 0 auto;"> <script>let giscusTheme=determineComputedTheme(),giscusAttributes={src:"https://giscus.app/client.js","data-repo":"logB-research/logB-research.github.io","data-repo-id":"","data-category":"Comments","data-category-id":"","data-mapping":"title","data-strict":"1","data-reactions-enabled":"1","data-emit-metadata":"0","data-input-position":"bottom","data-theme":giscusTheme,"data-lang":"en",crossorigin:"anonymous",async:""},giscusScript=document.createElement("script");Object.entries(giscusAttributes).forEach(([t,e])=>giscusScript.setAttribute(t,e)),document.getElementById("giscus_thread").appendChild(giscusScript);</script> <noscript>Please enable JavaScript to view the <a href="http://giscus.app/?ref_noscript" rel="external nofollow noopener" target="_blank">comments powered by giscus.</a> </noscript> </div> </div> <footer class="fixed-bottom" role="contentinfo"> <div class="container mt-0"> © Copyright 2024 logB </div> </footer> <script src="/assets/js/bootstrap.bundle.min.js"></script> <script src="https://cdn.jsdelivr.net/npm/mdbootstrap@4.20.0/js/mdb.min.js" integrity="sha256-NdbiivsvWt7VYCt6hYNT3h/th9vSTL4EDWeGs5SN3DA=" crossorigin="anonymous"></script> <script type="text/javascript">function progressBarSetup(){"max"in document.createElement("progress")?(initializeProgressElement(),$(document).on("scroll",function(){progressBar.attr({value:getCurrentScrollPosition()})}),$(window).on("resize",initializeProgressElement)):(resizeProgressBar(),$(document).on("scroll",resizeProgressBar),$(window).on("resize",resizeProgressBar))}function getCurrentScrollPosition(){return $(window).scrollTop()}function initializeProgressElement(){let e=$("#navbar").outerHeight(!0);$("body").css({"padding-top":e}),$("progress-container").css({"padding-top":e}),progressBar.css({top:e}),progressBar.attr({max:getDistanceToScroll(),value:getCurrentScrollPosition()})}function getDistanceToScroll(){return $(document).height()-$(window).height()}function resizeProgressBar(){progressBar.css({width:getWidthPercentage()+"%"})}function getWidthPercentage(){return getCurrentScrollPosition()/getDistanceToScroll()*100}const progressBar=$("#progress");window.onload=function(){setTimeout(progressBarSetup,50)};</script> </body> </html>
+<span class="p">}</span></code></pre></figure> </details> <h2 id="acknowledgments-"> <a id="acknowledgments"></a>Acknowledgments 🙏🏾</h2> <p>For any further questions, please feel free to leave a comment or contact the authors by mail!</p> </d-article> <d-appendix> <d-footnote-list></d-footnote-list> <d-citation-list></d-citation-list> </d-appendix> <d-bibliography src="/assets/bibliography/2024-04-22-ckn.bib"></d-bibliography> <div id="giscus_thread" style="max-width: 800px; margin: 0 auto;"> <script>let giscusTheme=determineComputedTheme(),giscusAttributes={src:"https://giscus.app/client.js","data-repo":"logB-research/logB-research.github.io","data-repo-id":"","data-category":"Comments","data-category-id":"","data-mapping":"title","data-strict":"1","data-reactions-enabled":"1","data-emit-metadata":"0","data-input-position":"bottom","data-theme":giscusTheme,"data-lang":"en",crossorigin:"anonymous",async:""},giscusScript=document.createElement("script");Object.entries(giscusAttributes).forEach(([t,e])=>giscusScript.setAttribute(t,e)),document.getElementById("giscus_thread").appendChild(giscusScript);</script> <noscript>Please enable JavaScript to view the <a href="http://giscus.app/?ref_noscript" rel="external nofollow noopener" target="_blank">comments powered by giscus.</a> </noscript> </div> </div> <footer class="fixed-bottom" role="contentinfo"> <div class="container mt-0"> © Copyright 2024 logB </div> </footer> <script src="/assets/js/bootstrap.bundle.min.js"></script> <script src="https://cdn.jsdelivr.net/npm/mdbootstrap@4.20.0/js/mdb.min.js" integrity="sha256-NdbiivsvWt7VYCt6hYNT3h/th9vSTL4EDWeGs5SN3DA=" crossorigin="anonymous"></script> <script type="text/javascript">function progressBarSetup(){"max"in document.createElement("progress")?(initializeProgressElement(),$(document).on("scroll",function(){progressBar.attr({value:getCurrentScrollPosition()})}),$(window).on("resize",initializeProgressElement)):(resizeProgressBar(),$(document).on("scroll",resizeProgressBar),$(window).on("resize",resizeProgressBar))}function getCurrentScrollPosition(){return $(window).scrollTop()}function initializeProgressElement(){let e=$("#navbar").outerHeight(!0);$("body").css({"padding-top":e}),$("progress-container").css({"padding-top":e}),progressBar.css({top:e}),progressBar.attr({max:getDistanceToScroll(),value:getCurrentScrollPosition()})}function getDistanceToScroll(){return $(document).height()-$(window).height()}function resizeProgressBar(){progressBar.css({width:getWidthPercentage()+"%"})}function getWidthPercentage(){return getCurrentScrollPosition()/getDistanceToScroll()*100}const progressBar=$("#progress");window.onload=function(){setTimeout(progressBarSetup,50)};</script> </body> </html>
