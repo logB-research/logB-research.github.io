@@ -1,24 +1,18 @@
 @inproceedings{mairal2014convolutional,
  author = {Mairal, Julien and Koniusz, Piotr and Harchaoui, Zaid and Schmid, Cordelia},
  booktitle = {Advances in Neural Information Processing Systems},
- editor = {Z. Ghahramani and M. Welling and C. Cortes and N. Lawrence and K.Q. Weinberger},
- pages = {},
  publisher = {Curran Associates, Inc.},
  title = {Convolutional Kernel Networks},
  url = {https://proceedings.neurips.cc/paper_files/paper/2014/file/81ca0262c82e712e50c580c032d99b60-Paper.pdf},
- volume = {27},
  year = {2014}
 }
 
 @inproceedings{mairal2016endtoend,
  author = {Mairal, Julien},
  booktitle = {Advances in Neural Information Processing Systems},
- editor = {D. Lee and M. Sugiyama and U. Luxburg and I. Guyon and R. Garnett},
- pages = {},
  publisher = {Curran Associates, Inc.},
  title = {End-to-End Kernel Learning with Supervised Convolutional Kernel Networks},
  url = {https://proceedings.neurips.cc/paper_files/paper/2016/file/fc8001f834f6a5f0561080d134d53d29-Paper.pdf},
- volume = {29},
  year = {2016}
 }
 
@@ -125,13 +119,14 @@
       primaryClass={cs.CV}
 }
 
-@misc{bietti2018group,
-      title={Group Invariance, Stability to Deformations, and Complexity of Deep Convolutional Representations}, 
-      author={Alberto Bietti and Julien Mairal},
-      year={2018},
-      eprint={1706.03078},
-      archivePrefix={arXiv},
-      primaryClass={stat.ML}
+@article{bietti2018group,
+author = {Bietti, Alberto and Mairal, Julien},
+title = {Group invariance, stability to deformations, and complexity of deep convolutional representations},
+year = {2019},
+issue_date = {January 2019},
+publisher = {JMLR.org},
+abstract = {The success of deep convolutional architectures is often attributed in part to their ability to learn multiscale and invariant representations of natural signals. However, a precise study of these properties and how they affect learning guarantees is still missing. In this paper, we consider deep convolutional representations of signals; we study their invariance to translations and to more general groups of transformations, their stability to the action of diffeomorphisms, and their ability to preserve signal information. This analysis is carried by introducing a multilayer kernel based on convolutional kernel networks and by studying the geometry induced by the kernel mapping. We then characterize the corresponding reproducing kernel Hilbert space (RKHS), showing that it contains a large class of convolutional neural networks with homogeneous activation functions. This analysis allows us to separate data representation from learning, and to provide a canonical measure of model complexity, the RKHS norm, which controls both stability and generalization of any learned model. In addition to models in the constructed RKHS, our stability analysis also applies to convolutional networks with generic activations such as rectified linear units, and we discuss its relationship with recent generalization bounds based on spectral norms.},
+journal = {JMLR},
 }
 
 @misc{paulin2016convolutional,
@@ -146,11 +141,8 @@
 @inproceedings{scholkopf2000kerneltrick,
  author = {Schölkopf, Bernhard},
  booktitle = {Advances in Neural Information Processing Systems},
- editor = {T. Leen and T. Dietterich and V. Tresp},
- pages = {},
  publisher = {MIT Press},
  title = {The Kernel Trick for Distances},
  url = {https://proceedings.neurips.cc/paper_files/paper/2000/file/4e87337f366f72daa424dae11df0538c-Paper.pdf},
- volume = {13},
  year = {2000}
 }
