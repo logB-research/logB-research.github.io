@@ -6,7 +6,7 @@ permalink: /
 
 profile:
   align: right
-  image: logo_logb_wo_bg.PNG # prof_pic.jpg
+  image: logo_logb_wo_bg.png # prof_pic.jpg
   image_circular: false # crops the image to make it circular
   more_info: # > <p>Paris</p>
 
