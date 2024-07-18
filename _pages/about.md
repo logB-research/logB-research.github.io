@@ -16,6 +16,7 @@ social: true # includes social icons at the bottom of the page
 ---
 
 On this page, we discuss our research, present papers we love, and introduce mathematical tricks we use daily.
+If you want to get notified whenever a new blogpost is out, you can subscribe to the mailing list (see the end of each blogpost).
 
 ### Authors
 - [Ambroise Odonnat](https://ambroiseodt.github.io/) ([mail](https://scholar.google.com/citations?user=M_OS-3kAAAAJ), [LinkedIn](https://www.linkedin.com/in/ambroise-odonnat))
