@@ -125,7 +125,7 @@ bing_site_verification: # out your bing-site-verification ID (Bing Webmaster)
 # -----------------------------------------------------------------------------
 
 blog_name: logB # blog_name will be displayed in your blog page
-blog_description: Sharing research advancement, interesting works and mathematical insights
+blog_description: Sharing our research journey
 permalink: /blog/:year/:title/
 
 # Pagination
